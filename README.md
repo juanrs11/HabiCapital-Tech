@@ -115,15 +115,15 @@ Implementaría un sistema de notificaciones básico — al menos emails transacc
 
 ## Cómo usé IA
 
-Usé Claude (Anthropic) como herramienta principal durante todo el reto.
+Usé Claude (Anthropic) como herramienta de apoyo durante el reto.
 
-**En qué etapas:** Análisis inicial del enunciado, diseño de arquitectura, generación de prompts para Lovable y Replit, debugging de errores específicos, y adaptación del código generado.
+**En qué etapas:** Exploración de opciones técnicas, generación de prompts para Lovable y Replit, debugging de errores específicos, y adaptación del código generado.
 
-**Qué le pedía:** Le pedía que me ayudara a pensar el problema antes de escribir código — qué features construir y por qué, cómo modelar los datos, qué decisiones técnicas eran críticas para la integridad financiera. También le pedía prompts muy específicos para las herramientas de generación (Lovable para el front, Replit para el back), con el nivel de detalle necesario para que el output fuera usable.
+**Qué le pedía:** Lo usé principalmente como asistente técnico para validar enfoques y destrabar problemas puntuales. Le pedía ayuda para entender implicaciones de ciertas decisiones, generar prompts bien estructurados para herramientas de código (Lovable para el front, Replit para el back), y sugerencias para debugging.
 
-**Qué decidía yo:** Las tres features diferenciales fueron una elección mía después de analizar el enunciado. Las decisiones de integridad — `SELECT FOR UPDATE`, `Decimal` en vez de float, `transfer_service` centralizado — las propuse yo con la ayuda de Claude para validarlas. El debugging del error de timezone en los pagos recurrentes lo resolví entendiendo el problema (offset-naive vs offset-aware datetimes) y aplicando el fix con criterio propio.
+**Qué decidía yo:** El planteamiento de las features y las decisiones arquitecturales fueron definidos por mí. También tomé directamente las decisiones críticas de integridad — como el uso de `SELECT FOR UPDATE`, `Decimal` en vez de float, y un `transfer_service` centralizado — utilizando la IA únicamente como apoyo para validar o profundizar en estas elecciones. El debugging del error de timezone en los pagos recurrentes lo resolví entendiendo el problema (offset-naive vs offset-aware datetimes) y aplicando el fix con criterio propio.
 
-**La dinámica:** No usé IA como caja negra. La usé como un colaborador técnico — le explicaba el contexto, discutía las opciones, y tomaba decisiones. Cuando Claude proponía algo que no me convencía (como usar Lovable para el core del backend), lo cuestioné y tomé una dirección diferente.
+**La dinámica:** No usé IA como caja negra, sino como un soporte técnico. Yo definía la dirección del proyecto y recurría a la IA para contrastar ideas, resolver dudas específicas y acelerar tareas puntuales.
 
 ---
 
