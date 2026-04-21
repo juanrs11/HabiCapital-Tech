@@ -1,0 +1,116 @@
+Aquí va el prompt completo para empezar el backend desde cero en un nuevo Replit:
+
+
+Build a REST API for HabiPay, a peer-to-peer money transfer platform. This is a financial system — data integrity is non-negotiable, no transaction can lose or duplicate money.
+Stack: Python 3.11 + FastAPI + PostgreSQL + SQLAlchemy (async) + Alembic. Use asyncpg as the async PostgreSQL driver. Do NOT use Node.js, Express, or Drizzle — this must be pure Python.
+
+Data models
+users: id (UUID), name, email (unique), hashed_password, balance (Numeric(18,2) — never float), created_at
+
+transactions: id (UUID), sender_id (FK users, nullable for top_ups), receiver_id (FK users), amount (Numeric(18,2)), type (enum: top_up / transfer), description, created_at
+
+groups: id (UUID), name, created_by (FK users), created_at
+group_members: group_id (FK), user_id (FK) — composite PK
+group_expenses: id (UUID), group_id (FK), paid_by (FK users), total_amount (Numeric(18,2)), description, created_at
+expense_splits: id (UUID), expense_id (FK), user_id (FK), amount (Numeric(18,2)), settled (bool, default false)
+
+recurring_payments: id (UUID), from_user_id (FK users), to_user_id (FK users), amount (Numeric(18,2)), label, frequency (enum: weekly/monthly), next_run_at (timestamp), active (bool, default true), created_at
+
+payment_links: id (UUID), token (unique string, indexed), creator_id (FK users), amount (Numeric(18,2)), description, pay_count (int, default 0), active (bool, default true), created_at
+
+Project structure
+app/
+  main.py
+  db.py
+  auth.py
+  models/
+    __init__.py
+    user.py
+    transaction.py
+    group.py
+    recurring.py
+    payment_link.py
+  schemas/
+    __init__.py
+    user.py
+    transaction.py
+    group.py
+    recurring.py
+    payment_link.py
+  routers/
+    __init__.py
+    auth.py
+    accounts.py
+    transfers.py
+    groups.py
+    recurring.py
+    payment_links.py
+  services/
+    transfer_service.py   ← atomic transfer logic lives here, reused everywhere
+alembic/
+requirements.txt
+.env.example
+README.md
+
+Endpoints
+Auth
+
+POST /auth/register — create user, hash password with bcrypt, initial balance 0
+POST /auth/login — return JWT token (expire: 7 days)
+
+Accounts
+
+GET /me — current user profile + balance. Requires JWT.
+POST /accounts/topup — body: amount. Adds to own balance, inserts top_up transaction. Requires JWT.
+
+Transfers
+
+POST /transfers — body: receiver_id, amount, description. Atomic transfer using SELECT FOR UPDATE on both user rows. Validates: sufficient balance, not self-transfer, receiver exists. Debit sender, credit receiver, insert transaction — all in one DB transaction. Rollback on any failure. Requires JWT.
+GET /transfers/history — full history for current user (sent + received + top_ups), sorted by date desc. Requires JWT.
+GET /transfers/tags — deduplicated list of all unique descriptions used by the current user, sorted alphabetically. Requires JWT.
+
+Groups & shared expenses
+
+POST /groups — create group. Requires JWT.
+POST /groups/{id}/members — add member by user_id. Requires JWT.
+POST /groups/{id}/expenses — body: paid_by, total_amount, description. Split equally among all current members. Creates one expense_split per member. Requires JWT.
+GET /groups/{id}/balances — return net balance per member pair (who owes whom) calculated from unsettled splits. Requires JWT.
+POST /groups/{id}/settle — body: debtor_id, creditor_id. Executes atomic transfer using transfer_service, marks relevant splits as settled. Requires JWT.
+
+Recurring payments
+
+POST /recurring — body: to_user_id, amount, label, frequency, start_date. Store with next_run_at = start_date. Requires JWT.
+GET /recurring — list active recurring payments for current user, joining to_name from users table. Requires JWT.
+DELETE /recurring/{id} — set active = false. Only owner can cancel. Requires JWT.
+POST /recurring/tick — no auth required (for cron or demo button). Find all where active = true AND next_run_at <= now(). For each: call transfer_service. On success advance next_run_at (weekly +7 days, monthly +30 days). On insufficient funds: skip, leave next_run_at unchanged. Return { "executed": N, "skipped": M }.
+
+Payment links
+
+POST /payment-links — body: amount, description. Generate token with secrets.token_urlsafe(8). Requires JWT.
+GET /payment-links — list all links created by current user. Requires JWT.
+GET /payment-links/{token} — public, no auth. Returns creator name, amount, description. 404 if not found or inactive.
+POST /payment-links/{token}/pay — body: none (payer = current JWT user). Validates: payer ≠ creator, sufficient balance. Calls transfer_service. Increments pay_count. Returns updated payer balance. Requires JWT.
+
+Health
+
+GET /health — returns {"status": "ok"}. No auth.
+
+
+Critical requirements
+
+All monetary values: Numeric(18,2) in DB, Decimal in Python — never float anywhere
+All transfers (manual, group settle, recurring tick, payment link pay) must go through the same transfer_service.execute_transfer() function — no duplicated transfer logic
+transfer_service.execute_transfer() must use SELECT FOR UPDATE on both user rows inside a single DB transaction
+Passwords hashed with bcrypt
+All protected endpoints require Authorization: Bearer <token> header
+CORS: allow all origins (frontend URL will vary by environment)
+Clear error responses for: insufficient funds, user not found, self-transfer, unauthorized, token not found
+
+
+Environment variables (document in .env.example)
+DATABASE_URL=postgresql+asyncpg://user:password@localhost/habipay
+SECRET_KEY=your-secret-key
+ALGORITHM=HS256
+
+Create and run all Alembic migrations before finishing. Include a README.md documenting every endpoint, how to run locally, and all environment variables.
+

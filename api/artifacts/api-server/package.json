@@ -1,0 +1,11 @@
+{
+  "name": "@workspace/api-server",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}",
+    "start": "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}",
+    "build": "python -m compileall app",
+    "typecheck": "python -m compileall app"
+  }
+}

@@ -1,0 +1,77 @@
+Fix the response shapes of the following endpoints to match the frontend service contract exactly. Do not change any other logic.
+
+1. GET /transfers/history
+Must return a list of transactions where each item matches this shape exactly:
+json{
+  "id": "uuid",
+  "type": "sent" | "received" | "topup",
+  "amount": 45.00,
+  "counterpart": "Bob Smith",
+  "counterpartId": "uuid",
+  "label": "Lunch split",
+  "date": "2025-04-11T14:30:00Z"
+}
+Mapping rules:
+
+type: if DB type is top_up → "topup". If type is transfer and sender_id == current_user → "sent". If type is transfer and receiver_id == current_user → "received".
+counterpart: name of the other user (join users). Null/omitted for top-ups.
+counterpartId: id of the other user. Null/omitted for top-ups.
+label: maps from DB description field.
+date: maps from DB created_at as ISO string.
+
+
+2. GET /groups/{id} (or however group detail is returned)
+Must return the group in this shape:
+json{
+  "id": "uuid",
+  "name": "Apartamento 402",
+  "members": [
+    { "userId": "uuid", "name": "Alice", "balance": 37.50 }
+  ],
+  "expenses": [
+    {
+      "id": "uuid",
+      "description": "Mercado",
+      "amount": 150.00,
+      "paidByUserId": "uuid",
+      "paidByName": "Alice",
+      "splitAmong": ["uuid1", "uuid2", "uuid3"],
+      "date": "2025-04-11T14:30:00Z"
+    }
+  ]
+}
+Mapping rules:
+
+members[].balance: positive = owed money, negative = owes money.
+expenses[].paidByName: join with users table on paid_by.
+expenses[].splitAmong: array of user_id strings pulled from expense_splits for that expense.
+expenses[].date: maps from created_at as ISO string.
+
+
+3. GET /groups (group list)
+Must return the full group object as described above for each group — not just id and name. The frontend needs members and expenses populated in the list view too.
+
+4. POST /auth/register and POST /auth/login
+Both must return the user object in this shape (no password field):
+json{
+  "id": "uuid",
+  "name": "Alice Johnson",
+  "email": "alice@example.com",
+  "balance": 0.00
+}
+Plus a token field for login:
+json{
+  "token": "eyJ...",
+  "user": { "id": "...", "name": "...", "email": "...", "balance": 0.00 }
+}
+
+5. GET /me
+Must return:
+json{
+  "id": "uuid",
+  "name": "Alice Johnson",
+  "email": "alice@example.com",
+  "balance": 1250.00
+}
+
+Do not change any transfer logic, database models, or Alembic migrations. Only fix response serialization and joins.
